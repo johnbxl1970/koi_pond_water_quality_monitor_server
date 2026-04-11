@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { PondRole } from '@prisma/client';
 import * as argon2 from 'argon2';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
@@ -125,9 +127,21 @@ export class ProvisioningService {
 
   // --- user side: mobile app POSTs /claim --------------------------------
 
-  async claim(claimToken: string, pondId: string): Promise<{ status: 'issued' | 'waiting' }> {
+  async claim(
+    claimToken: string,
+    pondId: string,
+    userId: string,
+  ): Promise<{ status: 'issued' | 'waiting' }> {
     const pond = await this.prisma.pond.findUnique({ where: { id: pondId } });
     if (!pond) throw new NotFoundException(`Pond ${pondId} not found`);
+
+    const membership = await this.prisma.pondMember.findUnique({
+      where: { pondId_userId: { pondId, userId } },
+    });
+    if (!membership) throw new NotFoundException(`Pond ${pondId} not found`);
+    if (membership.role !== PondRole.OWNER) {
+      throw new ForbiddenException('Only the pond owner can claim devices');
+    }
 
     // We don't know the hardwareId from the token alone; find by hash scan.
     // For MVP we fetch pending claims and verify; this is O(pending claims)

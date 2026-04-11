@@ -10,6 +10,15 @@ export class AppConfig {
   get httpPort() { return this.config.get('HTTP_PORT', { infer: true }); }
   get adminApiToken() { return this.config.get('ADMIN_API_TOKEN', { infer: true }); }
 
+  get jwt() {
+    return {
+      accessSecret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+      refreshSecret: this.config.get('JWT_REFRESH_SECRET', { infer: true }),
+      accessTtlSeconds: this.config.get('JWT_ACCESS_TTL_SECONDS', { infer: true }),
+      refreshTtlSeconds: this.config.get('JWT_REFRESH_TTL_SECONDS', { infer: true }),
+    };
+  }
+
   get databaseUrl() { return this.config.get('DATABASE_URL', { infer: true }); }
 
   get redisUrl() { return this.config.get('REDIS_URL', { infer: true }); }

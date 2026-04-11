@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from './config/config.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { AuthModule } from './auth/auth.module';
 import { IngestModule } from './ingest/ingest.module';
 import { ProvisioningModule } from './provisioning/provisioning.module';
 import { PondsModule } from './api/ponds/ponds.module';
@@ -19,6 +20,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     ScheduleModule.forRoot(),
     PrismaModule,
     RedisModule,
+    AuthModule,
     ProvisioningModule,
     IngestModule,
     PondsModule,

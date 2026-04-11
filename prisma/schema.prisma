@@ -42,11 +42,29 @@ enum CertStatus {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
+  id            String         @id @default(cuid())
+  email         String         @unique
   displayName   String?
-  createdAt     DateTime      @default(now())
+  passwordHash  String
+  createdAt     DateTime       @default(now())
   pondMembers   PondMember[]
+  refreshTokens RefreshToken[]
+}
+
+/// Rotating refresh tokens. The plaintext token is only ever returned to the
+/// caller at /auth/login and /auth/refresh; we store its SHA-256 hash so a
+/// database leak doesn't hand out live sessions.
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Pond {

@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProvisioningService } from './provisioning.service';
 import { ClaimDeviceDto, PreRegisterClaimDto } from './provisioning.dto';
 import { AdminGuard } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 
 @ApiTags('provisioning')
 @Controller()
@@ -31,13 +33,15 @@ export class ProvisioningController {
 
   /**
    * Called by the mobile app after the user scans the device QR code.
-   * Returns `{ status: 'issued' }` if the cert was dispatched immediately,
-   * or `{ status: 'waiting' }` if the device hasn't published its CSR yet;
-   * in the waiting case the mobile app should poll or subscribe to a status
-   * stream until issuance completes.
+   * Caller must be OWNER of the target pond. Returns `{ status: 'issued' }`
+   * if the cert was dispatched immediately, or `{ status: 'waiting' }` if
+   * the device hasn't published its CSR yet; in the waiting case the mobile
+   * app should poll or subscribe to a status stream until issuance completes.
    */
   @Post('devices/claim')
-  claim(@Body() dto: ClaimDeviceDto) {
-    return this.service.claim(dto.claimToken, dto.pondId);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  claim(@Body() dto: ClaimDeviceDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.claim(dto.claimToken, dto.pondId, user.id);
   }
 }

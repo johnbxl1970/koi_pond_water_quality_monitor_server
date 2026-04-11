@@ -71,10 +71,14 @@ Weather (src/weather/) ─> @Cron hourly → Open-Meteo → WeatherForecast rows
 - `ProvisioningService.onIssued` is a callback deliberately wired by `IngestService` so issued certs publish over the same MQTT connection that ingests telemetry. If you add a second MQTT client, don't use it here.
 - Claim tokens are hashed with argon2id. `ProvisioningService.claim` does an O(n) scan over pending claims because we can't look up by plaintext. That's fine at hobbyist scale; add an HMAC-prefix index if pending claims ever exceed a few hundred.
 
-### What's intentionally not here yet
+### Auth
 
-- Auth. `src/api/*` endpoints have no guards. A JWT guard + RLS-style pond membership check is the next milestone. Do not build features that assume multi-tenant isolation until the guard lands.
-- `POST /api/admin/device-claims` is also unguarded. It must be admin-only before this server is exposed to the internet.
+- `src/auth/` — JWT access + rotating refresh tokens (argon2id password hash, sha256-hashed refresh tokens stored in `RefreshToken`). Endpoints at `/api/auth/{register,login,refresh,logout,me}`.
+- Guards: `JwtAuthGuard` (bearer access token) and `PondRolesGuard` + `@PondRoles(...)` decorator. The roles guard reads `:pondId` from the route, looks up `PondMember`, and enforces a rank hierarchy (`OWNER > TECHNICIAN > VIEWER`). It's a no-op on routes without `:pondId`.
+- All user-facing API controllers (`ponds`, `devices`, `telemetry`, `stream`, `recommendations`, `provisioning/devices/claim`) are guarded. Pond list is filtered to the caller's memberships; pond create auto-binds the caller as `OWNER`. Devices controller enforces membership + ownership in the service rather than via the decorator because it doesn't always have `:pondId` on the route.
+- `POST /api/admin/device-claims` is guarded by `AdminGuard` (shared bearer token via `ADMIN_API_TOKEN`). Separate from user auth by design — the flashing tool is not a user.
+
+### What's intentionally not here yet
 - FCM is stubbed (`src/alerts/fcm.service.ts`). Wire `firebase-admin` when creds are provisioned; don't invent a parallel push abstraction.
 - EMQX ACLs (bootstrap cert can only touch `provisioning/+/request`, operational cert can only touch its own `koi/<hwid>/*`) need to be configured on the broker side — see `docs/device-onboarding.md` "MQTT topics" table. Not enforced by the server code alone.
 - Local-first mode is deferred to post-v1 but the stack is deliberately self-hostable — no managed-service SDKs in hot paths. Keep it that way.

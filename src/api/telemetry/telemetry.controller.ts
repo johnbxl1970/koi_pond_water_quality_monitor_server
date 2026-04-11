@@ -1,6 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { PondRole } from '@prisma/client';
 import { TelemetryService } from './telemetry.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { PondRolesGuard } from '../../auth/pond-roles.guard';
+import { PondRoles } from '../../auth/pond-roles.decorator';
 
 const WINDOWS: Record<string, number> = {
   '15m': 15 * 60 * 1000,
@@ -12,6 +16,9 @@ const WINDOWS: Record<string, number> = {
 };
 
 @ApiTags('telemetry')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PondRolesGuard)
+@PondRoles(PondRole.VIEWER)
 @Controller('ponds/:pondId/telemetry')
 export class TelemetryController {
   constructor(private readonly service: TelemetryService) {}
