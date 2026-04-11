@@ -40,17 +40,17 @@ export class AppConfig {
 
   get ca() {
     return {
-      operationalCertPem: this.config.get('CA_OPERATIONAL_CERT_PEM', { infer: true }),
-      operationalKeyPem: this.config.get('CA_OPERATIONAL_KEY_PEM', { infer: true }),
-      attestationCertPem: this.config.get('CA_ATTESTATION_CERT_PEM', { infer: true }),
+      operationalCertPem: this.config.get('CA_OPERATIONAL_CERT_FILE', { infer: true }),
+      operationalKeyPem: this.config.get('CA_OPERATIONAL_KEY_FILE', { infer: true }),
+      attestationCertPem: this.config.get('CA_ATTESTATION_CERT_FILE', { infer: true }),
       operationalCertDays: this.config.get('CA_OPERATIONAL_CERT_DAYS', { infer: true }),
     };
   }
 
   get qrSigning() {
     return {
-      privateKeyPem: this.config.get('QR_SIGNING_PRIVATE_KEY_PEM', { infer: true }),
-      publicKeyPem: this.config.get('QR_SIGNING_PUBLIC_KEY_PEM', { infer: true }),
+      privateKeyPem: this.config.get('QR_SIGNING_PRIVATE_KEY_FILE', { infer: true }),
+      publicKeyPem: this.config.get('QR_SIGNING_PUBLIC_KEY_FILE', { infer: true }),
     };
   }
 

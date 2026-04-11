@@ -1,4 +1,22 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+
+/**
+ * Cert/key material is loaded from files, not from inline env strings —
+ * inline PEMs have perennial newline-escaping and line-ending problems in
+ * every runtime, and every production secret manager mounts secrets as
+ * files anyway.
+ *
+ * An env var ending in `_FILE` holds a path; the transform reads the file
+ * synchronously at boot and hands the content to the rest of the app. An
+ * empty env var resolves to an empty string (disabling the feature rather
+ * than crashing).
+ */
+const fileField = z
+  .string()
+  .optional()
+  .default('')
+  .transform((p) => (p ? readFileSync(p, 'utf8') : ''));
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -25,12 +43,12 @@ export const envSchema = z.object({
   FCM_CLIENT_EMAIL: z.string().optional().default(''),
   FCM_PRIVATE_KEY: z.string().optional().default(''),
 
-  CA_OPERATIONAL_CERT_PEM: z.string().optional().default(''),
-  CA_OPERATIONAL_KEY_PEM: z.string().optional().default(''),
-  CA_ATTESTATION_CERT_PEM: z.string().optional().default(''),
+  CA_OPERATIONAL_CERT_FILE: fileField,
+  CA_OPERATIONAL_KEY_FILE: fileField,
+  CA_ATTESTATION_CERT_FILE: fileField,
   CA_OPERATIONAL_CERT_DAYS: z.coerce.number().int().positive().default(365),
-  QR_SIGNING_PRIVATE_KEY_PEM: z.string().optional().default(''),
-  QR_SIGNING_PUBLIC_KEY_PEM: z.string().optional().default(''),
+  QR_SIGNING_PRIVATE_KEY_FILE: fileField,
+  QR_SIGNING_PUBLIC_KEY_FILE: fileField,
   CLAIM_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   PENDING_CSR_TTL_SECONDS: z.coerce.number().int().positive().default(600),
 });

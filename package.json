@@ -19,7 +19,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "openapi:emit": "ts-node scripts/emit-openapi.ts",
-    "dev:gen-ca": "node scripts/gen-dev-ca.js"
+    "dev:gen-ca": "node scripts/gen-dev-ca.js",
+    "dev:gen-env": "node scripts/gen-dev-env.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",

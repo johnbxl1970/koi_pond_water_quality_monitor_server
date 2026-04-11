@@ -1,5 +1,5 @@
--- Timescale setup for the Telemetry table.
--- Runs AFTER Prisma creates the base "Telemetry" table.
+-- Promote the Prisma-managed Telemetry table to a TimescaleDB hypertable,
+-- then attach compression + retention policies.
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
