@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PondRole {
+  OWNER
+  VIEWER
+  TECHNICIAN
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum ComparisonOp {
+  LT
+  LTE
+  GT
+  GTE
+  EQ
+  NEQ
+}
+
+enum ClaimStatus {
+  PENDING
+  CONSUMED
+  EXPIRED
+  REVOKED
+}
+
+enum CertStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  displayName   String?
+  createdAt     DateTime      @default(now())
+  pondMembers   PondMember[]
+}
+
+model Pond {
+  id              String         @id @default(cuid())
+  name            String
+  volumeM3        Float
+  koiCount        Int            @default(0)
+  latitude        Float
+  longitude       Float
+  timezone        String         @default("UTC")
+  createdAt       DateTime       @default(now())
+
+  members         PondMember[]
+  devices         Device[]
+  alertRules      AlertRule[]
+  alertEvents     AlertEvent[]
+  weatherForecasts WeatherForecast[]
+}
+
+model PondMember {
+  id        String   @id @default(cuid())
+  pondId    String
+  userId    String
+  role      PondRole
+
+  pond      Pond     @relation(fields: [pondId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pondId, userId])
+}
+
+model Device {
+  id          String   @id @default(cuid())
+  pondId      String
+  hardwareId  String   @unique
+  label       String?
+  firmwareVer String?
+  lastSeenAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  pond         Pond                @relation(fields: [pondId], references: [id], onDelete: Cascade)
+  certificates DeviceCertificate[]
+}
+
+/// Pre-registered or freshly-generated claim tied to a specific hardware ID.
+/// The plaintext `claimToken` is never stored — only `claimTokenHash`
+/// (Argon2id). A claim is consumed exactly once, by the mobile app POSTing
+/// `/api/devices/claim` with the plaintext token from the QR.
+model DeviceClaim {
+  id                  String      @id @default(cuid())
+  hardwareId          String      @unique
+  claimTokenHash      String
+  pubkeyFingerprint   String      // sha256 of the device pubkey, hex
+  attestationCertPem  String      @db.Text
+  status              ClaimStatus @default(PENDING)
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  consumedByPondId    String?
+  createdAt           DateTime    @default(now())
+}
+
+/// An issued operational certificate, tracked for revocation + audit.
+/// We store only the public cert, never the private key.
+model DeviceCertificate {
+  id         String     @id @default(cuid())
+  deviceId   String
+  serial     String     @unique
+  certPem    String     @db.Text
+  issuedAt   DateTime   @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  status     CertStatus @default(ACTIVE)
+
+  device     Device     @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, status])
+}
+
+/// Telemetry is stored in a TimescaleDB hypertable. The migration after
+/// `prisma migrate` runs promotes this table to a hypertable and attaches
+/// retention + compression policies. Do NOT add a Prisma-managed primary key
+/// — Timescale hypertables require the time column in any unique index.
+model Telemetry {
+  time         DateTime @db.Timestamptz(6)
+  deviceId     String
+  pondId       String
+
+  phaseSeq     Int      @default(0)
+
+  phVal        Float?
+  tempC        Float?
+  doMgL        Float?
+  orpMv        Float?
+  tdsPpm       Float?
+  turbidityNtu Float?
+  nh3TotalPpm  Float?
+  nh3FreePpm   Float?
+  no2Ppm       Float?
+  no3Ppm       Float?
+  khDkh        Float?
+  ghDgh        Float?
+
+  raw          Json?
+
+  @@id([deviceId, time])
+  @@index([pondId, time])
+}
+
+model AlertRule {
+  id          String        @id @default(cuid())
+  pondId      String
+  metric      String        // e.g. "phVal", "nh3FreePpm"
+  op          ComparisonOp
+  threshold   Float
+  severity    AlertSeverity @default(WARNING)
+  enabled     Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  pond        Pond          @relation(fields: [pondId], references: [id], onDelete: Cascade)
+  events      AlertEvent[]
+}
+
+model AlertEvent {
+  id          String        @id @default(cuid())
+  pondId      String
+  ruleId      String
+  metric      String
+  value       Float
+  severity    AlertSeverity
+  firedAt     DateTime      @default(now())
+  resolvedAt  DateTime?
+
+  pond        Pond          @relation(fields: [pondId], references: [id], onDelete: Cascade)
+  rule        AlertRule     @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([pondId, firedAt])
+}
+
+model WeatherForecast {
+  id              String   @id @default(cuid())
+  pondId          String
+  fetchedAt       DateTime @default(now())
+  forecastForTime DateTime
+  tempC           Float?
+  precipMm        Float?
+  windKph         Float?
+  pressureHpa     Float?
+  cloudCoverPct   Float?
+  raw             Json
+
+  pond            Pond     @relation(fields: [pondId], references: [id], onDelete: Cascade)
+
+  @@index([pondId, forecastForTime])
+}
