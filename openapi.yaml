@@ -1,0 +1,455 @@
+openapi: 3.0.0
+paths:
+  /api/auth/register:
+    post:
+      operationId: AuthController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDto"
+      responses:
+        "201":
+          description: ""
+      tags: &a1
+        - auth
+  /api/auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginDto"
+      responses:
+        "201":
+          description: ""
+      tags: *a1
+  /api/auth/refresh:
+    post:
+      operationId: AuthController_refresh
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshDto"
+      responses:
+        "201":
+          description: ""
+      tags: *a1
+  /api/auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshDto"
+      responses:
+        "201":
+          description: ""
+      tags: *a1
+  /api/auth/me:
+    get:
+      operationId: AuthController_me
+      parameters: []
+      responses:
+        "200":
+          description: ""
+      tags: *a1
+      security:
+        - bearer: []
+  /api/admin/device-claims:
+    post:
+      operationId: ProvisioningController_preRegister
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreRegisterClaimDto"
+      responses:
+        "201":
+          description: ""
+      tags: &a2
+        - provisioning
+      security:
+        - bearer: []
+  /api/provisioning/qr-signing-pubkey:
+    get:
+      operationId: ProvisioningController_qrSigningPubkey
+      parameters: []
+      responses:
+        "200":
+          description: ""
+      tags: *a2
+  /api/devices/claim:
+    post:
+      operationId: ProvisioningController_claim
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimDeviceDto"
+      responses:
+        "201":
+          description: ""
+      tags: *a2
+      security:
+        - bearer: []
+  /api/ponds:
+    get:
+      operationId: PondsController_list
+      parameters: []
+      responses:
+        "200":
+          description: ""
+      tags: &a3
+        - ponds
+      security: &a4
+        - bearer: []
+    post:
+      operationId: PondsController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePondDto"
+      responses:
+        "201":
+          description: ""
+      tags: *a3
+      security: *a4
+  /api/ponds/{id}:
+    get:
+      operationId: PondsController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a3
+      security: *a4
+    patch:
+      operationId: PondsController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePondDto"
+      responses:
+        "200":
+          description: ""
+      tags: *a3
+      security: *a4
+    delete:
+      operationId: PondsController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a3
+      security: *a4
+  /api/devices:
+    get:
+      operationId: DevicesController_list
+      parameters:
+        - name: pondId
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: &a5
+        - devices
+      security: &a6
+        - bearer: []
+    post:
+      operationId: DevicesController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeviceDto"
+      responses:
+        "201":
+          description: ""
+      tags: *a5
+      security: *a6
+  /api/devices/{id}:
+    get:
+      operationId: DevicesController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a5
+      security: *a6
+    patch:
+      operationId: DevicesController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeviceDto"
+      responses:
+        "200":
+          description: ""
+      tags: *a5
+      security: *a6
+    delete:
+      operationId: DevicesController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a5
+      security: *a6
+  /api/ponds/{pondId}/telemetry:
+    get:
+      operationId: TelemetryController_query
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: window
+          required: false
+          in: query
+          schema:
+            enum:
+              - 15m
+              - 1h
+              - 6h
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags:
+        - telemetry
+      security:
+        - bearer: []
+  /api/ponds/{pondId}/stream:
+    get:
+      operationId: StreamController_stream
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags:
+        - stream
+      security:
+        - bearer: []
+  /api/ponds/{pondId}/recommendations:
+    get:
+      operationId: RecommendationsController_get
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags:
+        - recommendations
+      security:
+        - bearer: []
+info:
+  title: Koi Pond Water Quality Monitor
+  description: Server API for pond telemetry, alerts, and recommendations
+  version: 0.1.0
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    RegisterDto:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        displayName:
+          type: string
+      required:
+        - email
+        - password
+    LoginDto:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+    RefreshDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required:
+        - refreshToken
+    PreRegisterClaimDto:
+      type: object
+      properties:
+        hardwareId:
+          type: string
+          description: Stable hardware ID derived from the device pubkey
+        pubkeyFingerprint:
+          type: string
+          description: SHA-256 fingerprint of the device pubkey, hex
+        attestationCertPem:
+          type: string
+          description: Device attestation certificate (PEM)
+        claimToken:
+          type: string
+          description: Plaintext claim token (base32, 26 chars)
+      required:
+        - hardwareId
+        - pubkeyFingerprint
+        - attestationCertPem
+        - claimToken
+    ClaimDeviceDto:
+      type: object
+      properties:
+        claimToken:
+          type: string
+          description: Claim token from the device QR code
+        pondId:
+          type: string
+          description: Pond to bind the device to
+      required:
+        - claimToken
+        - pondId
+    CreatePondDto:
+      type: object
+      properties:
+        name:
+          type: string
+        volumeM3:
+          type: number
+          description: Pond volume in cubic meters
+        koiCount:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+      required:
+        - name
+        - volumeM3
+        - koiCount
+        - latitude
+        - longitude
+    UpdatePondDto:
+      type: object
+      properties:
+        name:
+          type: string
+        volumeM3:
+          type: number
+        koiCount:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+    CreateDeviceDto:
+      type: object
+      properties:
+        pondId:
+          type: string
+        hardwareId:
+          type: string
+        label:
+          type: string
+        firmwareVer:
+          type: string
+      required:
+        - pondId
+        - hardwareId
+    UpdateDeviceDto:
+      type: object
+      properties:
+        label:
+          type: string
+        firmwareVer:
+          type: string
