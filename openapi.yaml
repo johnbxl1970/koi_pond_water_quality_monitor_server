@@ -696,6 +696,90 @@ paths:
           description: ""
       tags: *a11
       security: *a12
+  /api/admin/timeseries/telemetry:
+    get:
+      operationId: AdminTimeseriesController_telemetry
+      parameters:
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: &a13
+        - admin
+      security: &a14
+        - bearer: []
+  /api/admin/timeseries/alerts:
+    get:
+      operationId: AdminTimeseriesController_alerts
+      parameters:
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a13
+      security: *a14
+  /api/admin/timeseries/predictions:
+    get:
+      operationId: AdminTimeseriesController_predictions
+      parameters:
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a13
+      security: *a14
+  /api/admin/timeseries/ponds/{id}/telemetry:
+    get:
+      operationId: AdminTimeseriesController_pondTelemetry
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: metric
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a13
+      security: *a14
 info:
   title: Koi Pond Water Quality Monitor
   description: Server API for pond telemetry, alerts, and recommendations

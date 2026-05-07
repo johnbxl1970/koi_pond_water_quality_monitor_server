@@ -1,10 +1,21 @@
 import { StatCard } from '@/components/stat-card';
 import { getDashboardStats } from '@/lib/server-stats';
+import {
+  getAlertSeries,
+  getPredictionSeries,
+  getTelemetrySeries,
+} from '@/lib/timeseries';
+import { AlertsChart, PredictionsChart, TelemetryChart } from '@/components/charts';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const s = await getDashboardStats();
+  const [s, telemetrySeries, alertSeries, predictionSeries] = await Promise.all([
+    getDashboardStats(),
+    getTelemetrySeries('30d'),
+    getAlertSeries('30d'),
+    getPredictionSeries('30d'),
+  ]);
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -82,6 +93,17 @@ export default async function DashboardPage() {
                 : 'default'
             }
           />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-koi-mute">
+          Trends
+        </h2>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <TelemetryChart data={telemetrySeries} />
+          <AlertsChart data={alertSeries} />
+          <PredictionsChart data={predictionSeries} />
         </div>
       </section>
     </div>

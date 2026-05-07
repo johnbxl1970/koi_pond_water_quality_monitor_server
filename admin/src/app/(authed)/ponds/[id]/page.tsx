@@ -3,6 +3,8 @@ import { adminFetch } from '@/lib/admin-fetch';
 import { ListError } from '@/components/list-error';
 import { DetailCard, Section } from '@/components/detail-card';
 import { DataTable } from '@/components/data-table';
+import { PondTelemetryChart } from '@/components/charts';
+import { getPondTelemetrySeries } from '@/lib/timeseries';
 import { formatDateTime, formatRelative } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -56,7 +58,13 @@ const sevClass: Record<Severity, string> = {
 };
 
 export default async function PondDetailPage({ params }: { params: { id: string } }) {
-  const p = await adminFetch<PondDetail>(`/ponds/${params.id}`);
+  const [p, phSeries, doSeries, tempSeries, freeNh3Series] = await Promise.all([
+    adminFetch<PondDetail>(`/ponds/${params.id}`),
+    getPondTelemetrySeries(params.id, 'phVal', '24h'),
+    getPondTelemetrySeries(params.id, 'doMgL', '24h'),
+    getPondTelemetrySeries(params.id, 'tempC', '24h'),
+    getPondTelemetrySeries(params.id, 'nh3FreePpm', '24h'),
+  ]);
   if ('error' in p) return <ListError title="Pond" error={p.error} />;
 
   const stocking = p.koiCount / Math.max(p.volumeM3, 0.01);
@@ -90,6 +98,15 @@ export default async function PondDetailPage({ params }: { params: { id: string 
           },
         ]}
       />
+
+      <Section title="Telemetry trends" hint="Last 24 hours, 15-minute averages">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <PondTelemetryChart metric="pH" data={phSeries} />
+          <PondTelemetryChart metric="Temp" data={tempSeries} unit="°C" />
+          <PondTelemetryChart metric="DO" data={doSeries} unit="mg/L" />
+          <PondTelemetryChart metric="Free NH3" data={freeNh3Series} unit="ppm" />
+        </div>
+      </Section>
 
       <Section title={`Members (${p.members.length})`}>
         <DataTable
