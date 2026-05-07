@@ -9,6 +9,7 @@ import { ProvisioningModule } from './provisioning/provisioning.module';
 import { PondsModule } from './api/ponds/ponds.module';
 import { DevicesModule } from './api/devices/devices.module';
 import { TelemetryModule } from './api/telemetry/telemetry.module';
+import { ManualReadingsModule } from './api/manual-readings/manual-readings.module';
 import { StreamModule } from './stream/stream.module';
 import { WeatherModule } from './weather/weather.module';
 import { AlertsModule } from './alerts/alerts.module';
@@ -28,6 +29,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     PondsModule,
     DevicesModule,
     TelemetryModule,
+    ManualReadingsModule,
     StreamModule,
     WeatherModule,
     AlertsModule,

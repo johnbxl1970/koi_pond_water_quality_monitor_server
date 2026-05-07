@@ -42,13 +42,14 @@ enum CertStatus {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  displayName   String?
-  passwordHash  String
-  createdAt     DateTime       @default(now())
-  pondMembers   PondMember[]
-  refreshTokens RefreshToken[]
+  id              String          @id @default(cuid())
+  email           String          @unique
+  displayName     String?
+  passwordHash    String
+  createdAt       DateTime        @default(now())
+  pondMembers     PondMember[]
+  refreshTokens   RefreshToken[]
+  manualReadings  ManualReading[]
 }
 
 /// Rotating refresh tokens. The plaintext token is only ever returned to the
@@ -82,6 +83,7 @@ model Pond {
   alertRules      AlertRule[]
   alertEvents     AlertEvent[]
   weatherForecasts WeatherForecast[]
+  manualReadings  ManualReading[]
 }
 
 model PondMember {
@@ -153,6 +155,7 @@ model Telemetry {
   pondId       String
 
   phaseSeq     Int      @default(0)
+  source       String   @default("device")
 
   phVal        Float?
   tempC        Float?
@@ -170,6 +173,39 @@ model Telemetry {
   raw          Json?
 
   @@id([deviceId, time])
+  @@index([pondId, time])
+}
+
+/// User-entered water test results (e.g. from API liquid test kits). Persisted
+/// as a separate entity so manual data is cleanly separated for analytics, and
+/// also fanned into the Telemetry hypertable with `source='manual'` so the
+/// existing alerting, recommendation, and SSE paths see them without changes.
+/// See ManualReadingsService.create.
+model ManualReading {
+  id           String   @id @default(cuid())
+  pondId       String
+  recordedById String
+  time         DateTime @default(now())
+  notes        String?
+
+  phVal        Float?
+  tempC        Float?
+  doMgL        Float?
+  orpMv        Float?
+  tdsPpm       Float?
+  turbidityNtu Float?
+  nh3TotalPpm  Float?
+  nh3FreePpm   Float?
+  no2Ppm       Float?
+  no3Ppm       Float?
+  khDkh        Float?
+  ghDgh        Float?
+
+  createdAt    DateTime @default(now())
+
+  pond         Pond     @relation(fields: [pondId], references: [id], onDelete: Cascade)
+  recordedBy   User     @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+
   @@index([pondId, time])
 }
 

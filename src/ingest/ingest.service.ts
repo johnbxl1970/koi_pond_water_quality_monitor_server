@@ -147,6 +147,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
       deviceId,
       pondId,
       phaseSeq: p.phaseSeq ?? 0,
+      source: 'device',
       phVal: p.phVal ?? null,
       tempC: p.tempC ?? null,
       doMgL: p.doMgL ?? null,

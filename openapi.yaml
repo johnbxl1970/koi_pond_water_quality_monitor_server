@@ -288,6 +288,46 @@ paths:
         - telemetry
       security:
         - bearer: []
+  /api/ponds/{pondId}/manual-readings:
+    post:
+      operationId: ManualReadingsController_create
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateManualReadingDto"
+      responses:
+        "201":
+          description: ""
+      tags: &a7
+        - manual-readings
+      security: &a8
+        - bearer: []
+    get:
+      operationId: ManualReadingsController_list
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: ""
+      tags: *a7
+      security: *a8
   /api/ponds/{pondId}/stream:
     get:
       operationId: StreamController_stream
@@ -503,3 +543,34 @@ components:
           type: string
         firmwareVer:
           type: string
+    CreateManualReadingDto:
+      type: object
+      properties:
+        time:
+          type: string
+          description: ISO timestamp; defaults to now
+        notes:
+          type: string
+          description: Free-form note (≤ 500 chars)
+        phVal:
+          type: number
+        tempC:
+          type: number
+        doMgL:
+          type: number
+        orpMv:
+          type: number
+        tdsPpm:
+          type: number
+        turbidityNtu:
+          type: number
+        nh3TotalPpm:
+          type: number
+        no2Ppm:
+          type: number
+        no3Ppm:
+          type: number
+        khDkh:
+          type: number
+        ghDgh:
+          type: number
