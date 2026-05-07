@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
@@ -43,9 +44,11 @@ export default async function AlertsPage({
           {
             header: 'Severity',
             cell: (a) => (
-              <span className={`rounded px-2 py-0.5 text-xs font-medium ${severityClass[a.severity]}`}>
-                {a.severity}
-              </span>
+              <Link href={`/alerts/${a.id}`} className="hover:underline">
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${severityClass[a.severity]}`}>
+                  {a.severity}
+                </span>
+              </Link>
             ),
           },
           { header: 'Pond', cell: (a) => a.pond?.name ?? <span className="text-koi-mute">{a.pondId}</span> },

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
@@ -54,7 +55,11 @@ export default async function PredictionsPage({
         columns={[
           {
             header: 'Kind',
-            cell: (p) => <code className="text-xs">{p.kind}</code>,
+            cell: (p) => (
+              <Link href={`/predictions/${p.id}`} className="hover:text-koi-red hover:underline">
+                <code className="text-xs">{p.kind}</code>
+              </Link>
+            ),
           },
           { header: 'Pond', cell: (p) => <span className="text-xs">{p.pondId}</span> },
           { header: 'Result', cell: (p) => summarize(p.kind, p.predicted) },

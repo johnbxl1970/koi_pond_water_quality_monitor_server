@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
@@ -33,7 +34,14 @@ export default async function PondsPage({
       <DataTable<PondRow>
         rows={result.items}
         columns={[
-          { header: 'Name', cell: (p) => p.name },
+          {
+            header: 'Name',
+            cell: (p) => (
+              <Link href={`/ponds/${p.id}`} className="text-koi-ink hover:text-koi-red hover:underline">
+                {p.name}
+              </Link>
+            ),
+          },
           { header: 'Volume', cell: (p) => `${p.volumeM3.toFixed(1)} m³`, className: 'tabular-nums' },
           { header: 'Koi', cell: (p) => p.koiCount, className: 'tabular-nums' },
           {

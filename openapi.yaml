@@ -549,6 +549,78 @@ paths:
           description: ""
       tags: *a9
       security: *a10
+  /api/admin/users/{id}:
+    get:
+      operationId: AdminDetailsController_user
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: &a11
+        - admin
+      security: &a12
+        - bearer: []
+  /api/admin/ponds/{id}:
+    get:
+      operationId: AdminDetailsController_pond
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a11
+      security: *a12
+  /api/admin/devices/{id}:
+    get:
+      operationId: AdminDetailsController_device
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a11
+      security: *a12
+  /api/admin/alerts/{id}:
+    get:
+      operationId: AdminDetailsController_alert
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a11
+      security: *a12
+  /api/admin/predictions/{id}:
+    get:
+      operationId: AdminDetailsController_prediction
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a11
+      security: *a12
 info:
   title: Koi Pond Water Quality Monitor
   description: Server API for pond telemetry, alerts, and recommendations

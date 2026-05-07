@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
@@ -33,7 +34,14 @@ export default async function DevicesPage({
       <DataTable<DeviceRow>
         rows={result.items}
         columns={[
-          { header: 'Hardware ID', cell: (d) => <code className="text-xs">{d.hardwareId}</code> },
+          {
+            header: 'Hardware ID',
+            cell: (d) => (
+              <Link href={`/devices/${d.id}`} className="hover:text-koi-red hover:underline">
+                <code className="text-xs">{d.hardwareId}</code>
+              </Link>
+            ),
+          },
           { header: 'Label', cell: (d) => d.label ?? <span className="text-koi-mute">—</span> },
           { header: 'Pond', cell: (d) => d.pond?.name ?? <span className="text-koi-mute">{d.pondId}</span> },
           { header: 'Firmware', cell: (d) => d.firmwareVer ?? <span className="text-koi-mute">—</span> },

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
@@ -30,7 +31,14 @@ export default async function UsersPage({
       <DataTable<UserRow>
         rows={result.items}
         columns={[
-          { header: 'Email', cell: (u) => u.email },
+          {
+            header: 'Email',
+            cell: (u) => (
+              <Link href={`/users/${u.id}`} className="text-koi-ink hover:text-koi-red hover:underline">
+                {u.email}
+              </Link>
+            ),
+          },
           { header: 'Display name', cell: (u) => u.displayName ?? <span className="text-koi-mute">—</span> },
           { header: 'Ponds', cell: (u) => u._count.pondMembers, className: 'tabular-nums' },
           {
