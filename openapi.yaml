@@ -425,6 +425,22 @@ paths:
         - recommendations
       security:
         - bearer: []
+  /api/ponds/{pondId}/predictions:
+    get:
+      operationId: PredictionsController_get
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags:
+        - predictions
+      security:
+        - bearer: []
 info:
   title: Koi Pond Water Quality Monitor
   description: Server API for pond telemetry, alerts, and recommendations

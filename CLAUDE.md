@@ -71,6 +71,15 @@ Weather (src/weather/) ─> @Cron hourly → Open-Meteo → WeatherForecast rows
 - `ProvisioningService.onIssued` is a callback deliberately wired by `IngestService` so issued certs publish over the same MQTT connection that ingests telemetry. If you add a second MQTT client, don't use it here.
 - Claim tokens are hashed with argon2id. `ProvisioningService.claim` does an O(n) scan over pending claims because we can't look up by plaintext. That's fine at hobbyist scale; add an HMAC-prefix index if pending claims ever exceed a few hundred.
 
+### ML sidecar (Phase 0 skeleton)
+
+- **`ml/`** is a Python (FastAPI) sidecar that serves predictions to the NestJS server. Runs as the `ml` service in `docker-compose.yml`, reachable at `http://ml:8000` from inside the docker network or `http://localhost:8000` from your host. The architecture memo lives in `~/.claude/plans/i-haven-t-decided-yet-witty-piglet.md`.
+- **Phase 0 status:** all `/predict/*` endpoints return `{ available: false }` — the underlying models (LSTM autoencoder for anomaly, DO forecast, NH3 forecast) aren't trained yet. **Don't add inline ML in NestJS** to fill the gap; the Python sidecar exists precisely so PyTorch/Opacus/Flower stay out of the API path.
+- **`src/predictions/predictions.service.ts`** — HTTP client to the sidecar. Every method returns `null` on outage/timeout, never throws. The 2-second timeout (`ML_SIDECAR_TIMEOUT_MS`) is deliberate — recommendations must stay fast even with a wedged sidecar.
+- **`src/recommendations/recommendations.service.ts`** merges sidecar predictions with rule-based current-state alerts. **Rules always run; predictions are additive.** A `level: 'forecast'` recommendation means "predicted future state"; the existing four levels (`ok | watch | action | critical`) are current-state. Mobile UIs should style forecast recs differently (icon, "in ~12h" label).
+- **`PredictionEvent` + `ModelVersion`** tables exist in Prisma but are not yet written to. Phase 1 fills them: every prediction logged for back-testing, only `isActive=true` model versions serve traffic, A/B harness gates promotions.
+- **Adding a new prediction kind:** define the FastAPI route in `ml/main.py`, add a typed result in `src/predictions/predictions.types.ts`, add a fetch method in `predictions.service.ts`, surface it in `recommendations.service.ts`. Don't split the sidecar — one Python container per deployment.
+
 ### Auth
 
 - `src/auth/` — JWT access + rotating refresh tokens (argon2id password hash, sha256-hashed refresh tokens stored in `RefreshToken`). Endpoints at `/api/auth/{register,login,refresh,logout,me}`.

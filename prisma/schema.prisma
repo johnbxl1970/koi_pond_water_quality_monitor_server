@@ -42,14 +42,17 @@ enum CertStatus {
 }
 
 model User {
-  id              String          @id @default(cuid())
-  email           String          @unique
-  displayName     String?
-  passwordHash    String
-  createdAt       DateTime        @default(now())
-  pondMembers     PondMember[]
-  refreshTokens   RefreshToken[]
-  manualReadings  ManualReading[]
+  id                       String          @id @default(cuid())
+  email                    String          @unique
+  displayName              String?
+  passwordHash             String
+  createdAt                DateTime        @default(now())
+  /// Opt-in flag for contributing anonymized telemetry to the centralized
+  /// ML training set. Off by default. See `~/.claude/plans/i-haven-t-decided-yet-witty-piglet.md`.
+  dataContributionConsent  Boolean         @default(false)
+  pondMembers              PondMember[]
+  refreshTokens            RefreshToken[]
+  manualReadings           ManualReading[]
 }
 
 /// Rotating refresh tokens. The plaintext token is only ever returned to the
@@ -254,4 +257,56 @@ model WeatherForecast {
   pond            Pond     @relation(fields: [pondId], references: [id], onDelete: Cascade)
 
   @@index([pondId, forecastForTime])
+}
+
+enum PredictionKind {
+  DO_FORECAST
+  NH3_FORECAST
+  ANOMALY_SCORE
+}
+
+/// Each row is one prediction emitted by the ML sidecar. The `predicted`
+/// JSON holds the model output (forecast trajectory, anomaly score, etc.).
+/// `actualForTime` is set later when ground truth is available, enabling
+/// back-testing and A/B comparison between model versions. See the ML
+/// architecture memo at `~/.claude/plans/i-haven-t-decided-yet-witty-piglet.md`.
+model PredictionEvent {
+  id             String         @id @default(cuid())
+  pondId         String
+  kind           PredictionKind
+  modelVersionId String
+  predictedAt    DateTime       @default(now())
+  /// The future timestamp the prediction targets (e.g. predictedAt + 12h).
+  /// For ANOMALY_SCORE this is just predictedAt.
+  targetTime     DateTime
+  predicted      Json
+  /// Populated by a back-fill job once telemetry covers `targetTime`.
+  actualForTime  DateTime?
+  actual         Json?
+
+  modelVersion   ModelVersion   @relation(fields: [modelVersionId], references: [id], onDelete: Restrict)
+
+  @@index([pondId, kind, predictedAt])
+  @@index([targetTime, actualForTime])
+}
+
+/// Tracks which model produced which predictions. Promoted from candidate
+/// to active only after beating the previous version on held-out data —
+/// see RecommendationsService A/B harness (Phase 1).
+model ModelVersion {
+  id              String            @id @default(cuid())
+  kind            PredictionKind
+  /// Semver-ish version string (e.g. "do-forecast-v0.3.1").
+  version         String            @unique
+  /// Pointer to the on-disk artifact (path inside the ml sidecar volume).
+  artifactPath    String
+  /// Free-form metadata: training data range, hyperparameters, eval metrics.
+  metadata        Json
+  trainedAt       DateTime          @default(now())
+  /// Only one active version per kind at any time.
+  isActive        Boolean           @default(false)
+
+  events          PredictionEvent[]
+
+  @@index([kind, isActive])
 }

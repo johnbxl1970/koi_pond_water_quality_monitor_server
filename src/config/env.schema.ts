@@ -51,6 +51,9 @@ export const envSchema = z.object({
   QR_SIGNING_PUBLIC_KEY_FILE: fileField,
   CLAIM_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   PENDING_CSR_TTL_SECONDS: z.coerce.number().int().positive().default(600),
+
+  ML_SIDECAR_URL: z.string().url().default('http://localhost:8000'),
+  ML_SIDECAR_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
 });
 
 export type Env = z.infer<typeof envSchema>;

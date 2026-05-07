@@ -56,4 +56,11 @@ export class AppConfig {
 
   get claimTokenTtlDays() { return this.config.get('CLAIM_TOKEN_TTL_DAYS', { infer: true }); }
   get pendingCsrTtlSeconds() { return this.config.get('PENDING_CSR_TTL_SECONDS', { infer: true }); }
+
+  get mlSidecar() {
+    return {
+      url: this.config.get('ML_SIDECAR_URL', { infer: true }),
+      timeoutMs: this.config.get('ML_SIDECAR_TIMEOUT_MS', { infer: true }),
+    };
+  }
 }
