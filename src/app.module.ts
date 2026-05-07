@@ -17,6 +17,7 @@ import { AlertEventsModule } from './alert-events/alert-events.module';
 import { ForecastModule } from './forecast/forecast.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { PredictionsModule } from './predictions/predictions.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PredictionsModule } from './predictions/predictions.module';
     ForecastModule,
     RecommendationsModule,
     PredictionsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

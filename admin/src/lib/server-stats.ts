@@ -1,9 +1,13 @@
-// Stat fetching layer. Today these read from a not-yet-built admin REST
-// surface on the NestJS server (`/api/admin/stats`). Auth + endpoint are
-// stubbed — the function returns placeholder zeros + a `live: false` flag
-// that the dashboard renders distinctly so it's obvious the wiring isn't
-// done yet. Implement the matching `AdminStatsController` next, then flip
-// `live` to true here.
+// Stats fetched from the NestJS server's `/api/admin/stats` endpoint.
+//
+// IMPORTANT: this module runs in Server Components only — never imported into
+// a "use client" file — so the bearer token stays on the server. The token
+// is read from the `KOI_ADMIN_TOKEN` env var (set in `.env.local`, which is
+// gitignored) and matches the server's `ADMIN_API_TOKEN`.
+//
+// On any error (server down, wrong token, etc.) we degrade gracefully to the
+// `live: false` shape so the dashboard renders an obvious "not wired" state
+// rather than 500-ing.
 
 export interface DashboardStats {
   live: boolean;
@@ -19,17 +23,35 @@ export interface DashboardStats {
   system: { telemetryRowsLast24h: number; lastWeatherPollMinutesAgo: number | null };
 }
 
+const ZEROS: DashboardStats = {
+  live: false,
+  users: { total: 0, last7d: 0 },
+  ponds: { total: 0, withTelemetry24h: 0 },
+  devices: { total: 0, pendingClaims: 0, activeCerts: 0 },
+  alerts: { open: 0, critical24h: 0 },
+  ai: { activeAnomalyModels: 0, predictionEvents24h: 0, flaggedRate24h: 0 },
+  system: { telemetryRowsLast24h: 0, lastWeatherPollMinutesAgo: null },
+};
+
 export async function getDashboardStats(): Promise<DashboardStats> {
-  // Hook-up point: replace this with `fetch('/api/admin/stats', ...)` once
-  // the controller exists. Until then we surface zeros and the `live: false`
-  // banner — better than fake numbers that look real.
-  return {
-    live: false,
-    users: { total: 0, last7d: 0 },
-    ponds: { total: 0, withTelemetry24h: 0 },
-    devices: { total: 0, pendingClaims: 0, activeCerts: 0 },
-    alerts: { open: 0, critical24h: 0 },
-    ai: { activeAnomalyModels: 0, predictionEvents24h: 0, flaggedRate24h: 0 },
-    system: { telemetryRowsLast24h: 0, lastWeatherPollMinutesAgo: null },
-  };
+  const base = process.env.KOI_SERVER_URL ?? 'http://localhost:3000';
+  const token = process.env.KOI_ADMIN_TOKEN;
+  if (!token) {
+    console.warn('[admin] KOI_ADMIN_TOKEN not set — falling back to placeholder zeros');
+    return ZEROS;
+  }
+  try {
+    const res = await fetch(`${base}/api/admin/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      console.warn(`[admin] /api/admin/stats returned HTTP ${res.status}`);
+      return ZEROS;
+    }
+    return (await res.json()) as DashboardStats;
+  } catch (err) {
+    console.warn(`[admin] /api/admin/stats fetch failed: ${(err as Error).message}`);
+    return ZEROS;
+  }
 }

@@ -441,6 +441,17 @@ paths:
         - predictions
       security:
         - bearer: []
+  /api/admin/stats:
+    get:
+      operationId: AdminStatsController_get
+      parameters: []
+      responses:
+        "200":
+          description: ""
+      tags:
+        - admin
+      security:
+        - bearer: []
 info:
   title: Koi Pond Water Quality Monitor
   description: Server API for pond telemetry, alerts, and recommendations
