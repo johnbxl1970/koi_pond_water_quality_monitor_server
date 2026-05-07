@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelemetryService } from '../api/telemetry/telemetry.service';
 
 function sinceCutoff(raw: string | undefined): Date {
   const now = Date.now();
@@ -18,7 +19,10 @@ function sinceCutoff(raw: string | undefined): Date {
  *  admin-volume traffic the values fit comfortably within JS's 2^53. */
 @Injectable()
 export class AdminTimeseriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly telemetry: TelemetryService,
+  ) {}
 
   async telemetryByDay(since?: string) {
     const cutoff = sinceCutoff(since);
@@ -82,38 +86,10 @@ export class AdminTimeseriesService {
     }));
   }
 
-  /** Hourly average of a single telemetry metric for one pond. Used by the
-   *  pond detail page so each pond has a glanceable readings chart. */
-  async pondTelemetrySeries(pondId: string, metric: string, since?: string) {
-    const allowed = new Set([
-      'phVal', 'tempC', 'doMgL', 'orpMv', 'tdsPpm', 'turbidityNtu',
-      'nh3TotalPpm', 'nh3FreePpm', 'no2Ppm', 'no3Ppm', 'khDkh', 'ghDgh',
-    ]);
-    if (!allowed.has(metric)) return [];
-    const cutoff = sinceCutoff(since);
-    const bucket = since === '24h' ? '15 minutes' : '1 hour';
-    // Column is dynamic — we only allow names from the whitelist above, so
-    // string interpolation is safe here. Prisma's $queryRawUnsafe is the
-    // right primitive for this case.
-    const rows = await this.prisma.$queryRawUnsafe<{ ts: Date; avg: number | null }[]>(
-      `
-        SELECT
-          time_bucket($1, "time") AS ts,
-          AVG("${metric}") AS avg
-        FROM "Telemetry"
-        WHERE "pondId" = $2
-          AND "time" >= $3
-          AND "${metric}" IS NOT NULL
-        GROUP BY ts
-        ORDER BY ts ASC
-      `,
-      bucket,
-      pondId,
-      cutoff,
-    );
-    return rows.map((r) => ({
-      time: r.ts.toISOString(),
-      value: r.avg == null ? null : Number(r.avg),
-    }));
+  /** Per-pond, per-metric series. Delegates to TelemetryService.series so
+   *  admin and the user-facing /api/ponds/:pondId/telemetry/series share
+   *  the same SQL — chart shapes are guaranteed identical across surfaces. */
+  pondTelemetrySeries(pondId: string, metric: string, since?: string) {
+    return this.telemetry.series(pondId, metric, since);
   }
 }

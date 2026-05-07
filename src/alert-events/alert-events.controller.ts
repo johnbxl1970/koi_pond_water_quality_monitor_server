@@ -16,13 +16,17 @@ export class AlertEventsController {
 
   @Get()
   @ApiQuery({ name: 'limit', required: false, type: Number, description: '1-200, default 50' })
-  @ApiQuery({ name: 'onlyOpen', required: false, type: Boolean, description: 'Only events with no resolvedAt' })
+  @ApiQuery({ name: 'onlyOpen', required: false, type: Boolean })
+  @ApiQuery({ name: 'severity', required: false, enum: ['INFO', 'WARNING', 'CRITICAL'] })
+  @ApiQuery({ name: 'since', required: false, enum: ['24h', '7d', '30d'] })
   list(
     @Param('pondId') pondId: string,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
     @Query('onlyOpen', new DefaultValuePipe(false), ParseBoolPipe) onlyOpen: boolean,
+    @Query('severity') severity?: string,
+    @Query('since') since?: string,
   ) {
     const clamped = Math.max(1, Math.min(limit, 200));
-    return this.service.list(pondId, { limit: clamped, onlyOpen });
+    return this.service.list(pondId, { limit: clamped, onlyOpen, severity, since });
   }
 }

@@ -1,11 +1,38 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PredictionKind, Prisma } from '@prisma/client';
 import { AppConfig } from '../config/config.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   AnomalyResult,
   ForecastResult,
   Predictions,
   RetrainResult,
 } from './predictions.types';
+
+function sinceCutoff(raw: string | undefined): Date | null {
+  if (!raw) return null;
+  const now = Date.now();
+  switch (raw) {
+    case '24h': return new Date(now - 24 * 60 * 60 * 1000);
+    case '7d': return new Date(now - 7 * 24 * 60 * 60 * 1000);
+    case '30d': return new Date(now - 30 * 24 * 60 * 60 * 1000);
+    default: return null;
+  }
+}
+
+function parseBool(raw: string | undefined): boolean | undefined {
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  return undefined;
+}
+
+export interface HistoryFilter {
+  limit?: number;
+  offset?: number;
+  kind?: string;
+  flagged?: string;
+  since?: string;
+}
 
 /** Retrain across all ponds takes seconds-to-minutes depending on fleet size,
  *  so we use a much larger timeout than the inference path's
@@ -28,7 +55,55 @@ const RETRAIN_TIMEOUT_MS = 10 * 60_000;
 export class PredictionsService {
   private readonly logger = new Logger(PredictionsService.name);
 
-  constructor(private readonly config: AppConfig) {}
+  constructor(
+    private readonly config: AppConfig,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /**
+   * Pond-scoped history of recorded `PredictionEvent`s, with the same filter
+   * surface as the admin lists view (kind / flagged / since) plus
+   * pagination. Used by mobile to render a "predictions for this pond"
+   * timeline. Doesn't touch the sidecar — these rows are the database's
+   * record of what the sidecar has predicted, not a fresh inference.
+   */
+  async getHistory(pondId: string, filter: HistoryFilter = {}) {
+    const limit = Math.max(1, Math.min(filter.limit ?? 50, 200));
+    const offset = Math.max(0, filter.offset ?? 0);
+    const where: Prisma.PredictionEventWhereInput = { pondId };
+    if (
+      filter.kind &&
+      ['ANOMALY_SCORE', 'DO_FORECAST', 'NH3_FORECAST'].includes(filter.kind)
+    ) {
+      where.kind = filter.kind as PredictionKind;
+    }
+    const since = sinceCutoff(filter.since);
+    if (since) where.predictedAt = { gte: since };
+    const flagged = parseBool(filter.flagged);
+    if (flagged !== undefined) {
+      where.predicted = { path: ['flagged'], equals: flagged };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.predictionEvent.findMany({
+        where,
+        select: {
+          id: true,
+          kind: true,
+          predictedAt: true,
+          targetTime: true,
+          predicted: true,
+          modelVersionId: true,
+          modelVersion: { select: { version: true } },
+        },
+        orderBy: { predictedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.predictionEvent.count({ where }),
+    ]);
+    return { items, total, limit, offset };
+  }
 
   async getPredictions(pondId: string): Promise<Predictions> {
     const [anomaly, doForecast, nh3Forecast] = await Promise.all([

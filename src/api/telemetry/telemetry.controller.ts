@@ -35,4 +35,20 @@ export class TelemetryController {
     const n = Math.min(Math.max(parseInt(limit, 10) || 500, 1), 10000);
     return this.service.query(pondId, ms, n);
   }
+
+  /**
+   * Time-bucketed series for one metric — drives mobile chart screens.
+   * 15-minute buckets for `since=24h`, 1-hour buckets for `since=7d|30d`.
+   * Mirrors the admin chart endpoint but pond-scoped (membership, not isAdmin).
+   */
+  @Get('series')
+  @ApiQuery({ name: 'metric', required: true })
+  @ApiQuery({ name: 'since', required: false, enum: ['24h', '7d', '30d'] })
+  series(
+    @Param('pondId') pondId: string,
+    @Query('metric') metric: string,
+    @Query('since') since?: string,
+  ) {
+    return this.service.series(pondId, metric, since);
+  }
 }

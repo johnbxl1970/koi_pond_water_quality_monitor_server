@@ -299,10 +299,38 @@ paths:
       responses:
         "200":
           description: ""
-      tags:
+      tags: &a7
         - telemetry
-      security:
+      security: &a8
         - bearer: []
+  /api/ponds/{pondId}/telemetry/series:
+    get:
+      operationId: TelemetryController_series
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: metric
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a7
+      security: *a8
   /api/ponds/{pondId}/manual-readings:
     post:
       operationId: ManualReadingsController_create
@@ -321,9 +349,9 @@ paths:
       responses:
         "201":
           description: ""
-      tags: &a7
+      tags: &a9
         - manual-readings
-      security: &a8
+      security: &a10
         - bearer: []
     get:
       operationId: ManualReadingsController_list
@@ -341,8 +369,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a7
-      security: *a8
+      tags: *a9
+      security: *a10
   /api/ponds/{pondId}/stream:
     get:
       operationId: StreamController_stream
@@ -377,9 +405,26 @@ paths:
         - name: onlyOpen
           required: false
           in: query
-          description: Only events with no resolvedAt
           schema:
             type: boolean
+        - name: severity
+          required: false
+          in: query
+          schema:
+            enum:
+              - INFO
+              - WARNING
+              - CRITICAL
+            type: string
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
       responses:
         "200":
           description: ""
@@ -437,10 +482,60 @@ paths:
       responses:
         "200":
           description: ""
-      tags:
+      tags: &a11
         - predictions
-      security:
+      security: &a12
         - bearer: []
+  /api/ponds/{pondId}/predictions/history:
+    get:
+      operationId: PredictionsController_history
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: offset
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: kind
+          required: false
+          in: query
+          schema:
+            enum:
+              - ANOMALY_SCORE
+              - DO_FORECAST
+              - NH3_FORECAST
+            type: string
+        - name: flagged
+          required: false
+          in: query
+          schema:
+            enum:
+              - "true"
+              - "false"
+            type: string
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a11
+      security: *a12
   /api/admin/stats:
     get:
       operationId: AdminStatsController_get
@@ -482,9 +577,9 @@ paths:
       responses:
         "200":
           description: ""
-      tags: &a9
+      tags: &a13
         - admin
-      security: &a10
+      security: &a14
         - bearer: []
   /api/admin/ponds:
     get:
@@ -508,8 +603,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a9
-      security: *a10
+      tags: *a13
+      security: *a14
   /api/admin/devices:
     get:
       operationId: AdminListsController_devices
@@ -532,8 +627,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a9
-      security: *a10
+      tags: *a13
+      security: *a14
   /api/admin/alerts:
     get:
       operationId: AdminListsController_alerts
@@ -577,8 +672,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a9
-      security: *a10
+      tags: *a13
+      security: *a14
   /api/admin/predictions:
     get:
       operationId: AdminListsController_predictions
@@ -622,8 +717,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a9
-      security: *a10
+      tags: *a13
+      security: *a14
   /api/admin/users/{id}:
     get:
       operationId: AdminDetailsController_user
@@ -636,9 +731,9 @@ paths:
       responses:
         "200":
           description: ""
-      tags: &a11
+      tags: &a15
         - admin
-      security: &a12
+      security: &a16
         - bearer: []
   /api/admin/ponds/{id}:
     get:
@@ -652,8 +747,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a11
-      security: *a12
+      tags: *a15
+      security: *a16
   /api/admin/devices/{id}:
     get:
       operationId: AdminDetailsController_device
@@ -666,8 +761,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a11
-      security: *a12
+      tags: *a15
+      security: *a16
   /api/admin/alerts/{id}:
     get:
       operationId: AdminDetailsController_alert
@@ -680,8 +775,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a11
-      security: *a12
+      tags: *a15
+      security: *a16
   /api/admin/predictions/{id}:
     get:
       operationId: AdminDetailsController_prediction
@@ -694,8 +789,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a11
-      security: *a12
+      tags: *a15
+      security: *a16
   /api/admin/timeseries/telemetry:
     get:
       operationId: AdminTimeseriesController_telemetry
@@ -712,9 +807,9 @@ paths:
       responses:
         "200":
           description: ""
-      tags: &a13
+      tags: &a17
         - admin
-      security: &a14
+      security: &a18
         - bearer: []
   /api/admin/timeseries/alerts:
     get:
@@ -732,8 +827,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a13
-      security: *a14
+      tags: *a17
+      security: *a18
   /api/admin/timeseries/predictions:
     get:
       operationId: AdminTimeseriesController_predictions
@@ -750,8 +845,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a13
-      security: *a14
+      tags: *a17
+      security: *a18
   /api/admin/timeseries/ponds/{id}/telemetry:
     get:
       operationId: AdminTimeseriesController_pondTelemetry
@@ -778,8 +873,8 @@ paths:
       responses:
         "200":
           description: ""
-      tags: *a13
-      security: *a14
+      tags: *a17
+      security: *a18
 info:
   title: Koi Pond Water Quality Monitor
   description: Server API for pond telemetry, alerts, and recommendations

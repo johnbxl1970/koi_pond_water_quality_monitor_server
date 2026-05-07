@@ -7,8 +7,10 @@ import { AdminDetailsController } from './admin-details.controller';
 import { AdminDetailsService } from './admin-details.service';
 import { AdminTimeseriesController } from './admin-timeseries.controller';
 import { AdminTimeseriesService } from './admin-timeseries.service';
+import { TelemetryModule } from '../api/telemetry/telemetry.module';
 
 @Module({
+  imports: [TelemetryModule],
   controllers: [
     AdminStatsController,
     AdminListsController,
