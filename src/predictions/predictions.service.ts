@@ -4,7 +4,14 @@ import {
   AnomalyResult,
   ForecastResult,
   Predictions,
+  RetrainResult,
 } from './predictions.types';
+
+/** Retrain across all ponds takes seconds-to-minutes depending on fleet size,
+ *  so we use a much larger timeout than the inference path's
+ *  ML_SIDECAR_TIMEOUT_MS. Anything past 10 minutes likely means the sidecar
+ *  is wedged — better to abort than hold a TCP connection open indefinitely. */
+const RETRAIN_TIMEOUT_MS = 10 * 60_000;
 
 /**
  * Talks HTTP to the Python ML sidecar. **Every call is graceful**: timeouts,
@@ -67,6 +74,29 @@ export class PredictionsService {
       return (await res.json()) as T;
     } catch (err) {
       this.logger.warn(`ML sidecar ${path} unreachable: ${(err as Error).message}`);
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Trigger a sidecar-side fit across all ponds. Returns null on outage. */
+  async triggerAnomalyRetrain(): Promise<RetrainResult | null> {
+    const { url } = this.config.mlSidecar;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), RETRAIN_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${url}/retrain/anomaly`, {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        this.logger.warn(`ML sidecar /retrain/anomaly returned HTTP ${res.status}`);
+        return null;
+      }
+      return (await res.json()) as RetrainResult;
+    } catch (err) {
+      this.logger.warn(`ML sidecar /retrain/anomaly failed: ${(err as Error).message}`);
       return null;
     } finally {
       clearTimeout(timer);

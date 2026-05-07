@@ -42,3 +42,19 @@ export interface Predictions {
   /** True iff the sidecar was reachable. False on outage / timeout. */
   sidecarReachable: boolean;
 }
+
+export interface RetrainTrained {
+  pondId: string;
+  rowsFit: number;
+  modelVersionId: string;
+}
+
+export interface RetrainSkipped {
+  pondId: string;
+  reason: string;
+}
+
+export interface RetrainResult {
+  trained: RetrainTrained[];
+  skipped: RetrainSkipped[];
+}
