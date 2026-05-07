@@ -81,6 +81,8 @@ Weather (src/weather/) ─> @Cron hourly → Open-Meteo → WeatherForecast rows
 ### What's intentionally not here yet
 - FCM is stubbed (`src/alerts/fcm.service.ts`). Wire `firebase-admin` when creds are provisioned; don't invent a parallel push abstraction.
 - EMQX ACLs (bootstrap cert can only touch `provisioning/+/request`, operational cert can only touch its own `koi/<hwid>/*`) need to be configured on the broker side — see `docs/device-onboarding.md` "MQTT topics" table. Not enforced by the server code alone.
+- **Pond-membership endpoints** (invite/list/change-role/remove members on `/api/ponds/:pondId/members`). The `PondMember` table and `PondRolesGuard` rank hierarchy are already in place — only OWNERs exist in practice today because the create-pond flow is the only path that writes `PondMember`. Add this when mobile needs a "share with my pond service" or "invite a viewer" screen. Until then, every user is effectively an OWNER of their own ponds and nothing else.
+- **Alert-rule CRUD endpoints.** `AlertRule` is in the schema and `AlertsService.evaluate` reads from it on every telemetry insert, but there's no controller. Rules can only be inserted via Prisma directly. Add controllers when the mobile app needs a "set custom thresholds" screen; until then alerting requires manual rule seeding.
 - Local-first mode is deferred to post-v1 but the stack is deliberately self-hostable — no managed-service SDKs in hot paths. Keep it that way.
 
 ## Conventions
