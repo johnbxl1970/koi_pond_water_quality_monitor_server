@@ -12,6 +12,8 @@ import { TelemetryModule } from './api/telemetry/telemetry.module';
 import { StreamModule } from './stream/stream.module';
 import { WeatherModule } from './weather/weather.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { AlertEventsModule } from './alert-events/alert-events.module';
+import { ForecastModule } from './forecast/forecast.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 
 @Module({
@@ -29,6 +31,8 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     StreamModule,
     WeatherModule,
     AlertsModule,
+    AlertEventsModule,
+    ForecastModule,
     RecommendationsModule,
   ],
 })

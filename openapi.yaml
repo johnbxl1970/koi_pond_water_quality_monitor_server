@@ -304,6 +304,56 @@ paths:
         - stream
       security:
         - bearer: []
+  /api/ponds/{pondId}/alerts:
+    get:
+      operationId: AlertEventsController_list
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          description: 1-200, default 50
+          schema:
+            type: number
+        - name: onlyOpen
+          required: false
+          in: query
+          description: Only events with no resolvedAt
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: ""
+      tags:
+        - alert-events
+      security:
+        - bearer: []
+  /api/ponds/{pondId}/forecast:
+    get:
+      operationId: ForecastController_upcoming
+      parameters:
+        - name: pondId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: hours
+          required: false
+          in: query
+          description: 1-168, default 24
+          schema:
+            type: number
+      responses:
+        "200":
+          description: ""
+      tags:
+        - forecast
+      security:
+        - bearer: []
   /api/ponds/{pondId}/recommendations:
     get:
       operationId: RecommendationsController_get
