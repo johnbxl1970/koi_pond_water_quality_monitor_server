@@ -87,6 +87,7 @@ model Pond {
   alertEvents     AlertEvent[]
   weatherForecasts WeatherForecast[]
   manualReadings  ManualReading[]
+  modelVersions   ModelVersion[]
 }
 
 model PondMember {
@@ -290,23 +291,36 @@ model PredictionEvent {
   @@index([targetTime, actualForTime])
 }
 
-/// Tracks which model produced which predictions. Promoted from candidate
-/// to active only after beating the previous version on held-out data —
-/// see RecommendationsService A/B harness (Phase 1).
+/// Tracks which model produced which predictions. Two flavors:
+///
+///  * **Global** (`pondId IS NULL`): one model serves all ponds. Promoted
+///    from candidate to active only after beating the previous version on
+///    held-out data (Phase 1 A/B harness).
+///  * **Per-pond** (`pondId IS NOT NULL`): self-supervised on a single pond's
+///    history — e.g., the IsolationForest anomaly detector. "Active" is
+///    scoped to (kind, pondId), not globally.
+///
+/// The active-version invariant ("at most one active per kind, per pondId
+/// scope") is enforced in code at training time, not via DB constraint —
+/// the constraint would break A/B promotions.
 model ModelVersion {
   id              String            @id @default(cuid())
   kind            PredictionKind
-  /// Semver-ish version string (e.g. "do-forecast-v0.3.1").
+  /// Null for global models; pond ID for per-pond fine-tuned models.
+  pondId          String?
+  /// Semver-ish version string (e.g. "do-forecast-v0.3.1" or
+  /// "anomaly_iforest-v0-<pondId>-<ts>"). Globally unique.
   version         String            @unique
   /// Pointer to the on-disk artifact (path inside the ml sidecar volume).
   artifactPath    String
   /// Free-form metadata: training data range, hyperparameters, eval metrics.
   metadata        Json
   trainedAt       DateTime          @default(now())
-  /// Only one active version per kind at any time.
   isActive        Boolean           @default(false)
 
+  pond            Pond?             @relation(fields: [pondId], references: [id], onDelete: Cascade)
   events          PredictionEvent[]
 
   @@index([kind, isActive])
+  @@index([pondId, kind, isActive])
 }

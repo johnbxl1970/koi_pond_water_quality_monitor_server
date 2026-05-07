@@ -58,8 +58,14 @@ def _build_pipeline() -> Pipeline:
     )
 
 
-def fit(pond_id: str, df: pd.DataFrame) -> int:
-    """Train on the supplied telemetry frame; return the row count fit on.
+@dataclass
+class FitResult:
+    rows_fit: int
+    artifact_path: str
+
+
+def fit(pond_id: str, df: pd.DataFrame) -> FitResult:
+    """Train on the supplied telemetry frame.
 
     Raises ValueError if there isn't enough data to learn a sensible normal."""
     if len(df) < MIN_TRAIN_ROWS:
@@ -76,8 +82,9 @@ def fit(pond_id: str, df: pd.DataFrame) -> int:
     pipe = _build_pipeline()
     pipe.fit(X)
     os.makedirs(ARTIFACT_ROOT, exist_ok=True)
-    joblib.dump({"pipeline": pipe, "learned_mask": learned_mask}, _artifact_path(pond_id))
-    return len(df)
+    path = _artifact_path(pond_id)
+    joblib.dump({"pipeline": pipe, "learned_mask": learned_mask}, path)
+    return FitResult(rows_fit=len(df), artifact_path=path)
 
 
 def has_model(pond_id: str) -> bool:
