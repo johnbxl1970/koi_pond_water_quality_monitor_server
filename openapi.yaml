@@ -452,6 +452,103 @@ paths:
         - admin
       security:
         - bearer: []
+  /api/admin/users:
+    get:
+      operationId: AdminListsController_users
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: offset
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: &a9
+        - admin
+      security: &a10
+        - bearer: []
+  /api/admin/ponds:
+    get:
+      operationId: AdminListsController_ponds
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: offset
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a9
+      security: *a10
+  /api/admin/devices:
+    get:
+      operationId: AdminListsController_devices
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: offset
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a9
+      security: *a10
+  /api/admin/alerts:
+    get:
+      operationId: AdminListsController_alerts
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: offset
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a9
+      security: *a10
+  /api/admin/predictions:
+    get:
+      operationId: AdminListsController_predictions
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: offset
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a9
+      security: *a10
 info:
   title: Koi Pond Water Quality Monitor
   description: Server API for pond telemetry, alerts, and recommendations
