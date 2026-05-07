@@ -108,6 +108,21 @@ paths:
       tags: *a2
       security:
         - bearer: []
+  /api/devices/claim-status/{hardwareId}:
+    get:
+      operationId: ProvisioningController_claimStatus
+      parameters:
+        - name: hardwareId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+      tags: *a2
+      security:
+        - bearer: []
   /api/ponds:
     get:
       operationId: PondsController_list

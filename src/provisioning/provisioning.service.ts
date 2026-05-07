@@ -175,6 +175,68 @@ export class ProvisioningService {
     return { status: 'waiting' };
   }
 
+  // --- claim status (mobile polls this after /devices/claim returns 'waiting') ---
+
+  async getClaimStatus(
+    hardwareId: string,
+    userId: string,
+  ): Promise<{
+    hardwareId: string;
+    status: 'awaiting_csr' | 'issued' | 'expired' | 'revoked';
+    deviceId?: string;
+    issuedAt?: Date;
+    expiresAt?: Date;
+  }> {
+    const claim = await this.prisma.deviceClaim.findUnique({
+      where: { hardwareId },
+    });
+    // Hide existence from anyone who isn't the OWNER who initiated the claim.
+    // A claim only exposes status to the user who already authorized it.
+    if (!claim || !claim.consumedByPondId) {
+      throw new NotFoundException('Claim not found');
+    }
+    const membership = await this.prisma.pondMember.findUnique({
+      where: {
+        pondId_userId: { pondId: claim.consumedByPondId, userId },
+      },
+    });
+    if (!membership || membership.role !== PondRole.OWNER) {
+      throw new NotFoundException('Claim not found');
+    }
+
+    if (claim.status === 'EXPIRED') {
+      return { hardwareId, status: 'expired' };
+    }
+    if (claim.status === 'REVOKED') {
+      return { hardwareId, status: 'revoked' };
+    }
+    if (claim.status === 'CONSUMED') {
+      // Cert was issued; the Device row exists. Return its id + cert window.
+      const device = await this.prisma.device.findUnique({
+        where: { hardwareId },
+        include: {
+          certificates: {
+            where: { status: 'ACTIVE' },
+            orderBy: { issuedAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+      const cert = device?.certificates[0];
+      return {
+        hardwareId,
+        status: 'issued',
+        deviceId: device?.id,
+        issuedAt: cert?.issuedAt,
+        expiresAt: cert?.expiresAt,
+      };
+    }
+    // PENDING with consumedByPondId set means the user POSTed /claim and we're
+    // still waiting for the device to publish its CSR. Mobile should keep
+    // polling on a 5–10s cadence.
+    return { hardwareId, status: 'awaiting_csr' };
+  }
+
   // --- cert issuance + publish -------------------------------------------
 
   private async issueAndPublish(submission: CsrSubmission, pondId: string) {

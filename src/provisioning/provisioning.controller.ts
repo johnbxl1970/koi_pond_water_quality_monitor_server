@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProvisioningService } from './provisioning.service';
 import { ClaimDeviceDto, PreRegisterClaimDto } from './provisioning.dto';
@@ -43,5 +43,20 @@ export class ProvisioningController {
   @ApiBearerAuth()
   claim(@Body() dto: ClaimDeviceDto, @CurrentUser() user: CurrentUserPayload) {
     return this.service.claim(dto.claimToken, dto.pondId, user.id);
+  }
+
+  /**
+   * Poll for claim outcome after `/devices/claim` returns `{ status: 'waiting' }`.
+   * Caller must be OWNER of the pond the claim was bound to. Mobile clients
+   * should poll on a 5–10s cadence with a ~90s overall timeout.
+   */
+  @Get('devices/claim-status/:hardwareId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  claimStatus(
+    @Param('hardwareId') hardwareId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.service.getClaimStatus(hardwareId, user.id);
   }
 }
