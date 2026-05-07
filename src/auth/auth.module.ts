@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PondRolesGuard } from './pond-roles.guard';
+import { AdminUserGuard } from './admin-user.guard';
 
 @Global()
 @Module({
@@ -21,7 +22,7 @@ import { PondRolesGuard } from './pond-roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, PondRolesGuard],
-  exports: [AuthService, JwtAuthGuard, PondRolesGuard, JwtModule],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, PondRolesGuard, AdminUserGuard],
+  exports: [AuthService, JwtAuthGuard, PondRolesGuard, AdminUserGuard, JwtModule],
 })
 export class AuthModule {}

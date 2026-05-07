@@ -50,6 +50,10 @@ model User {
   /// Opt-in flag for contributing anonymized telemetry to the centralized
   /// ML training set. Off by default. See `~/.claude/plans/i-haven-t-decided-yet-witty-piglet.md`.
   dataContributionConsent  Boolean         @default(false)
+  /// Grants access to the admin portal at admin/ (port 3001 in dev).
+  /// Promotion is intentional + manual via `npx ts-node scripts/promote-admin.ts <email>`.
+  /// Default false — admin status is never granted by the regular signup flow.
+  isAdmin                  Boolean         @default(false)
   pondMembers              PondMember[]
   refreshTokens            RefreshToken[]
   manualReadings           ManualReading[]

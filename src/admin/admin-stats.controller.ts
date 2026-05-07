@@ -1,19 +1,18 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AdminGuard } from '../auth/admin.guard';
+import { AdminUserGuard } from '../auth/admin-user.guard';
 import { AdminStatsService } from './admin-stats.service';
 
 /**
  * Admin-only fleet stats for the internal dashboard at port 3001.
- * Guarded by the existing shared `ADMIN_API_TOKEN` bearer (same gate as
- * `POST /api/admin/device-claims`). Per-user admin auth (User.isAdmin) is
- * a follow-up; for v0 "knows the token" is the access boundary, and the
- * admin Next.js app reads the token from a server-side env var so it
- * never reaches the browser.
+ * Guarded by `AdminUserGuard` — requires a valid JWT bearer token from
+ * a User with `isAdmin = true`. The shared `ADMIN_API_TOKEN` bearer
+ * still gates `POST /api/admin/device-claims` for the flashing tool,
+ * but everything human-facing is now per-user.
  */
 @ApiTags('admin')
 @ApiBearerAuth()
-@UseGuards(AdminGuard)
+@UseGuards(AdminUserGuard)
 @Controller('admin/stats')
 export class AdminStatsController {
   constructor(private readonly service: AdminStatsService) {}

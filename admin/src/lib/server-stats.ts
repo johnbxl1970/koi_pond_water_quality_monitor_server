@@ -1,13 +1,13 @@
 // Stats fetched from the NestJS server's `/api/admin/stats` endpoint.
 //
 // IMPORTANT: this module runs in Server Components only — never imported into
-// a "use client" file — so the bearer token stays on the server. The token
-// is read from the `KOI_ADMIN_TOKEN` env var (set in `.env.local`, which is
-// gitignored) and matches the server's `ADMIN_API_TOKEN`.
+// a "use client" file — so the bearer token (read from the HttpOnly admin
+// cookie) stays on the server.
 //
-// On any error (server down, wrong token, etc.) we degrade gracefully to the
-// `live: false` shape so the dashboard renders an obvious "not wired" state
-// rather than 500-ing.
+// On any error we degrade gracefully to the `live: false` shape so the
+// dashboard renders an obvious "not wired" state rather than 500-ing.
+
+import { readAccessToken } from './cookies';
 
 export interface DashboardStats {
   live: boolean;
@@ -35,9 +35,8 @@ const ZEROS: DashboardStats = {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const base = process.env.KOI_SERVER_URL ?? 'http://localhost:3000';
-  const token = process.env.KOI_ADMIN_TOKEN;
+  const token = readAccessToken();
   if (!token) {
-    console.warn('[admin] KOI_ADMIN_TOKEN not set — falling back to placeholder zeros');
     return ZEROS;
   }
   try {

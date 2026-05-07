@@ -4,11 +4,15 @@ import { AuthService } from './auth.service';
 import { LoginDto, RefreshDto, RegisterDto } from './auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from './current-user.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -33,7 +37,11 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  me(@CurrentUser() user: CurrentUserPayload) {
-    return user;
+  async me(@CurrentUser() user: CurrentUserPayload) {
+    const row = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, displayName: true, isAdmin: true, dataContributionConsent: true },
+    });
+    return row;
   }
 }

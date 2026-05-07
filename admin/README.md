@@ -30,14 +30,24 @@ for any future client-side calls. The dashboard's stat fetch happens
 **server-side** in a Server Component, with the bearer token attached
 from `KOI_ADMIN_TOKEN` — the token never reaches the browser.
 
-## Auth (Phase 0)
+## Auth
 
-Access control is the existing shared `ADMIN_API_TOKEN` bearer (same
-gate that protects `POST /api/admin/device-claims` on the server). The
-admin app reads it from `KOI_ADMIN_TOKEN` in `.env.local` (gitignored).
-**Anyone with the token can view the dashboard.** Run the admin only
-locally — never expose port 3001 publicly until per-user admin auth
-(`User.isAdmin` + login screen) lands.
+Per-user admin auth via JWT + cookies. To get in:
+
+1. Register the user normally via `POST /api/auth/register`.
+2. Promote them on the server: `npx ts-node scripts/promote-admin.ts you@example.com`
+3. Visit `http://localhost:3001/login`, enter the same credentials.
+
+The login Server Action verifies the user has `isAdmin=true` via `/api/auth/me`
+before storing the session cookies (`koi_admin_at`, `koi_admin_rt`, both HttpOnly).
+Edge middleware at `src/middleware.ts` decodes the access JWT's `exp` and
+transparently refreshes via `/api/auth/refresh` when the access token is
+within 30 seconds of expiring — admins stay signed in across the server's
+15-minute access TTL until the 30-day refresh token expires.
+
+The shared `ADMIN_API_TOKEN` bearer is no longer used by this app. It still
+exists on the server, but only to gate `POST /api/admin/device-claims` for
+the device-flashing tool.
 
 ## What's intentionally not here yet
 
