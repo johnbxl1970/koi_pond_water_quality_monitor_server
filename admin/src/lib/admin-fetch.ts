@@ -42,10 +42,30 @@ export async function adminFetch<T>(
 export function buildPaginationQuery(
   searchParams: { [key: string]: string | string[] | undefined },
   defaultLimit = 50,
-): { qs: string; limit: number; offset: number } {
+  filterKeys: readonly string[] = [],
+): {
+  qs: string;
+  limit: number;
+  offset: number;
+  filters: Record<string, string | undefined>;
+} {
   const limit = clampInt(searchParams.limit, defaultLimit, 1, 200);
   const offset = clampInt(searchParams.offset, 0, 0, Number.MAX_SAFE_INTEGER);
-  return { qs: `?limit=${limit}&offset=${offset}`, limit, offset };
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  const filters: Record<string, string | undefined> = {};
+  for (const k of filterKeys) {
+    const raw = searchParams[k];
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    if (v !== undefined && v !== '') {
+      params.set(k, v);
+      filters[k] = v;
+    } else {
+      filters[k] = undefined;
+    }
+  }
+  return { qs: `?${params.toString()}`, limit, offset, filters };
 }
 
 function clampInt(

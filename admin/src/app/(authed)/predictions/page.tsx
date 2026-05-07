@@ -3,9 +3,12 @@ import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
 import { ListError } from '@/components/list-error';
+import { FilterBar, Field, SelectField } from '@/components/filter-bar';
 import { formatDateTime, formatRelative } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
+
+const FILTER_KEYS = ['kind', 'flagged', 'since'] as const;
 
 type Kind = 'ANOMALY_SCORE' | 'DO_FORECAST' | 'NH3_FORECAST';
 
@@ -43,13 +46,47 @@ export default async function PredictionsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { qs, limit, offset } = buildPaginationQuery(searchParams);
+  const { qs, limit, offset, filters } = buildPaginationQuery(searchParams, 50, FILTER_KEYS);
   const result = await adminFetch<ListPage<PredictionRow>>(`/predictions${qs}`);
   if ('error' in result) return <ListError title="Predictions" error={result.error} />;
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold text-koi-ink">AI / Predictions</h1>
+      <FilterBar action="/predictions" current={filters}>
+        <Field label="Kind">
+          <SelectField
+            name="kind"
+            defaultValue={filters.kind}
+            options={[
+              { label: 'anomaly', value: 'ANOMALY_SCORE' },
+              { label: 'DO forecast', value: 'DO_FORECAST' },
+              { label: 'NH3 forecast', value: 'NH3_FORECAST' },
+            ]}
+          />
+        </Field>
+        <Field label="Flagged">
+          <SelectField
+            name="flagged"
+            defaultValue={filters.flagged}
+            options={[
+              { label: 'flagged', value: 'true' },
+              { label: 'normal', value: 'false' },
+            ]}
+          />
+        </Field>
+        <Field label="Window">
+          <SelectField
+            name="since"
+            defaultValue={filters.since}
+            options={[
+              { label: 'last 24h', value: '24h' },
+              { label: 'last 7d', value: '7d' },
+              { label: 'last 30d', value: '30d' },
+            ]}
+          />
+        </Field>
+      </FilterBar>
       <DataTable<PredictionRow>
         rows={result.items}
         columns={[
@@ -78,9 +115,9 @@ export default async function PredictionsPage({
             ),
           },
         ]}
-        empty="No predictions written yet — run a /predict/* call against the ML sidecar."
+        empty="No matching predictions."
       />
-      <Pagination basePath="/predictions" total={result.total} limit={limit} offset={offset} />
+      <Pagination basePath="/predictions" total={result.total} limit={limit} offset={offset} extraParams={filters} />
     </div>
   );
 }

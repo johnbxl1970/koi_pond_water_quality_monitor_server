@@ -466,6 +466,19 @@ paths:
           in: query
           schema:
             type: string
+        - name: search
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: admin
+          required: false
+          in: query
+          schema:
+            enum:
+              - "true"
+              - "false"
+            type: string
       responses:
         "200":
           description: ""
@@ -483,6 +496,11 @@ paths:
           schema:
             type: string
         - name: offset
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: search
           required: false
           in: query
           schema:
@@ -506,6 +524,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: search
+          required: false
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: ""
@@ -525,6 +548,32 @@ paths:
           in: query
           schema:
             type: string
+        - name: severity
+          required: false
+          in: query
+          schema:
+            enum:
+              - INFO
+              - WARNING
+              - CRITICAL
+            type: string
+        - name: status
+          required: false
+          in: query
+          schema:
+            enum:
+              - open
+              - resolved
+            type: string
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
       responses:
         "200":
           description: ""
@@ -543,6 +592,32 @@ paths:
           required: false
           in: query
           schema:
+            type: string
+        - name: kind
+          required: false
+          in: query
+          schema:
+            enum:
+              - ANOMALY_SCORE
+              - DO_FORECAST
+              - NH3_FORECAST
+            type: string
+        - name: flagged
+          required: false
+          in: query
+          schema:
+            enum:
+              - "true"
+              - "false"
+            type: string
+        - name: since
+          required: false
+          in: query
+          schema:
+            enum:
+              - 24h
+              - 7d
+              - 30d
             type: string
       responses:
         "200":

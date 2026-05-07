@@ -3,9 +3,12 @@ import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
 import { ListError } from '@/components/list-error';
+import { FilterBar, Field, TextField } from '@/components/filter-bar';
 import { formatDateTime, formatRelative } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
+
+const FILTER_KEYS = ['search'] as const;
 
 interface DeviceRow {
   id: string;
@@ -24,13 +27,18 @@ export default async function DevicesPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { qs, limit, offset } = buildPaginationQuery(searchParams);
+  const { qs, limit, offset, filters } = buildPaginationQuery(searchParams, 50, FILTER_KEYS);
   const result = await adminFetch<ListPage<DeviceRow>>(`/devices${qs}`);
   if ('error' in result) return <ListError title="Devices" error={result.error} />;
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold text-koi-ink">Devices</h1>
+      <FilterBar action="/devices" current={filters}>
+        <Field label="Search">
+          <TextField name="search" defaultValue={filters.search} placeholder="hardware ID or label" />
+        </Field>
+      </FilterBar>
       <DataTable<DeviceRow>
         rows={result.items}
         columns={[
@@ -57,9 +65,9 @@ export default async function DevicesPage({
           },
           { header: 'Registered', cell: (d) => formatDateTime(d.createdAt) },
         ]}
-        empty="No devices registered."
+        empty="No matching devices."
       />
-      <Pagination basePath="/devices" total={result.total} limit={limit} offset={offset} />
+      <Pagination basePath="/devices" total={result.total} limit={limit} offset={offset} extraParams={filters} />
     </div>
   );
 }

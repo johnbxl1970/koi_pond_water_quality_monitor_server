@@ -3,14 +3,18 @@ import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
 import { ListError } from '@/components/list-error';
+import { FilterBar, Field, TextField, SelectField } from '@/components/filter-bar';
 import { formatDateTime, formatRelative } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
+
+const FILTER_KEYS = ['search', 'admin'] as const;
 
 interface UserRow {
   id: string;
   email: string;
   displayName: string | null;
+  isAdmin: boolean;
   createdAt: string;
   dataContributionConsent: boolean;
   _count: { pondMembers: number };
@@ -21,13 +25,28 @@ export default async function UsersPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { qs, limit, offset } = buildPaginationQuery(searchParams);
+  const { qs, limit, offset, filters } = buildPaginationQuery(searchParams, 50, FILTER_KEYS);
   const result = await adminFetch<ListPage<UserRow>>(`/users${qs}`);
   if ('error' in result) return <ListError title="Users" error={result.error} />;
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold text-koi-ink">Users</h1>
+      <FilterBar action="/users" current={filters}>
+        <Field label="Search">
+          <TextField name="search" defaultValue={filters.search} placeholder="email or display name" />
+        </Field>
+        <Field label="Admin">
+          <SelectField
+            name="admin"
+            defaultValue={filters.admin}
+            options={[
+              { label: 'admin', value: 'true' },
+              { label: 'non-admin', value: 'false' },
+            ]}
+          />
+        </Field>
+      </FilterBar>
       <DataTable<UserRow>
         rows={result.items}
         columns={[
@@ -40,6 +59,10 @@ export default async function UsersPage({
             ),
           },
           { header: 'Display name', cell: (u) => u.displayName ?? <span className="text-koi-mute">—</span> },
+          {
+            header: 'Admin',
+            cell: (u) => (u.isAdmin ? <span className="rounded bg-koi-red/10 px-2 py-0.5 text-xs font-medium text-koi-red">yes</span> : <span className="text-koi-mute">—</span>),
+          },
           { header: 'Ponds', cell: (u) => u._count.pondMembers, className: 'tabular-nums' },
           {
             header: 'Data sharing',
@@ -53,9 +76,9 @@ export default async function UsersPage({
           { header: 'Joined', cell: (u) => formatDateTime(u.createdAt) },
           { header: '', cell: (u) => <span className="text-koi-mute">{formatRelative(u.createdAt)}</span> },
         ]}
-        empty="No users yet."
+        empty="No matching users."
       />
-      <Pagination basePath="/users" total={result.total} limit={limit} offset={offset} />
+      <Pagination basePath="/users" total={result.total} limit={limit} offset={offset} extraParams={filters} />
     </div>
   );
 }

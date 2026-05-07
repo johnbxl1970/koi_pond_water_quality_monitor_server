@@ -3,9 +3,12 @@ import { adminFetch, buildPaginationQuery, ListPage } from '@/lib/admin-fetch';
 import { DataTable } from '@/components/data-table';
 import { Pagination } from '@/components/pagination';
 import { ListError } from '@/components/list-error';
+import { FilterBar, Field, SelectField } from '@/components/filter-bar';
 import { formatDateTime, formatRelative } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
+
+const FILTER_KEYS = ['severity', 'status', 'since'] as const;
 
 type Severity = 'INFO' | 'WARNING' | 'CRITICAL';
 
@@ -31,13 +34,47 @@ export default async function AlertsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { qs, limit, offset } = buildPaginationQuery(searchParams);
+  const { qs, limit, offset, filters } = buildPaginationQuery(searchParams, 50, FILTER_KEYS);
   const result = await adminFetch<ListPage<AlertRow>>(`/alerts${qs}`);
   if ('error' in result) return <ListError title="Alerts" error={result.error} />;
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold text-koi-ink">Alerts</h1>
+      <FilterBar action="/alerts" current={filters}>
+        <Field label="Severity">
+          <SelectField
+            name="severity"
+            defaultValue={filters.severity}
+            options={[
+              { label: 'CRITICAL', value: 'CRITICAL' },
+              { label: 'WARNING', value: 'WARNING' },
+              { label: 'INFO', value: 'INFO' },
+            ]}
+          />
+        </Field>
+        <Field label="Status">
+          <SelectField
+            name="status"
+            defaultValue={filters.status}
+            options={[
+              { label: 'open', value: 'open' },
+              { label: 'resolved', value: 'resolved' },
+            ]}
+          />
+        </Field>
+        <Field label="Window">
+          <SelectField
+            name="since"
+            defaultValue={filters.since}
+            options={[
+              { label: 'last 24h', value: '24h' },
+              { label: 'last 7d', value: '7d' },
+              { label: 'last 30d', value: '30d' },
+            ]}
+          />
+        </Field>
+      </FilterBar>
       <DataTable<AlertRow>
         rows={result.items}
         columns={[
@@ -65,9 +102,9 @@ export default async function AlertsPage({
           },
           { header: 'Fired', cell: (a) => <span title={formatDateTime(a.firedAt)}>{formatRelative(a.firedAt)}</span> },
         ]}
-        empty="No alerts fired yet."
+        empty="No matching alerts."
       />
-      <Pagination basePath="/alerts" total={result.total} limit={limit} offset={offset} />
+      <Pagination basePath="/alerts" total={result.total} limit={limit} offset={offset} extraParams={filters} />
     </div>
   );
 }
