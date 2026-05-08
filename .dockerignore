@@ -1,0 +1,34 @@
+# Anything that shouldn't end up in the build context. Trims context size
+# and avoids leaking dev artifacts / secrets into image layers.
+node_modules
+dist
+coverage
+.next
+
+# Other repos / nested apps build their own images.
+admin
+ml
+
+# Dev databases / artifacts
+postgres_data
+redis_data
+*.sqlite
+
+# Local env, keys, certs
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editor / OS scratch
+.git
+.github
+.vscode
+.idea
+.DS_Store
+
+# Documentation that doesn't need to ship in the image
+README.md
+docs
+*.md

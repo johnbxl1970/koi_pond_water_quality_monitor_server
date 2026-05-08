@@ -63,6 +63,11 @@ export interface PredictionsFilter {
   flagged?: string;  // "true" | "false"
   since?: string;
 }
+export interface ModelsFilter {
+  kind?: string;
+  active?: string; // "true" | "false"
+  since?: string;
+}
 
 @Injectable()
 export class AdminListsService {
@@ -236,6 +241,41 @@ export class AdminListsService {
         skip: offset,
       }),
       this.prisma.predictionEvent.count({ where }),
+    ]);
+    return { items, total, limit, offset };
+  }
+
+  async models(rawLimit?: string, rawOffset?: string, filter: ModelsFilter = {}) {
+    const limit = clampLimit(rawLimit);
+    const offset = clampOffset(rawOffset);
+    const where: Prisma.ModelVersionWhereInput = {};
+    if (filter.kind && ['ANOMALY_SCORE', 'DO_FORECAST', 'NH3_FORECAST'].includes(filter.kind)) {
+      where.kind = filter.kind as PredictionKind;
+    }
+    const active = parseBool(filter.active);
+    if (active !== undefined) where.isActive = active;
+    const since = sinceCutoff(filter.since);
+    if (since) where.trainedAt = { gte: since };
+
+    const [items, total] = await Promise.all([
+      this.prisma.modelVersion.findMany({
+        where,
+        select: {
+          id: true,
+          kind: true,
+          pondId: true,
+          version: true,
+          trainedAt: true,
+          isActive: true,
+          metadata: true,
+          pond: { select: { name: true } },
+          _count: { select: { events: true } },
+        },
+        orderBy: { trainedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.modelVersion.count({ where }),
     ]);
     return { items, total, limit, offset };
   }

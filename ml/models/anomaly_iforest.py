@@ -11,6 +11,7 @@ Until then this baseline is what ships.
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 
 import joblib
@@ -62,6 +63,19 @@ def _build_pipeline() -> Pipeline:
 class FitResult:
     rows_fit: int
     artifact_path: str
+    fit_duration_ms: int
+    artifact_size_bytes: int
+    param_count: int
+
+
+def _count_iforest_params(forest: IsolationForest) -> int:
+    """Total decision-tree node count across the forest. There's no scalar
+    "weights" here like a neural net, so we report structural complexity:
+    sum of nodes (each node = one split rule or leaf) across all estimators."""
+    total = 0
+    for tree in forest.estimators_:
+        total += int(tree.tree_.node_count)
+    return total
 
 
 def fit(pond_id: str, df: pd.DataFrame) -> FitResult:
@@ -80,11 +94,21 @@ def fit(pond_id: str, df: pd.DataFrame) -> FitResult:
     coverage = np.isfinite(X).mean(axis=0)
     learned_mask = coverage >= 0.3
     pipe = _build_pipeline()
+    t0 = time.monotonic()
     pipe.fit(X)
+    fit_ms = int((time.monotonic() - t0) * 1000)
     os.makedirs(ARTIFACT_ROOT, exist_ok=True)
     path = _artifact_path(pond_id)
     joblib.dump({"pipeline": pipe, "learned_mask": learned_mask}, path)
-    return FitResult(rows_fit=len(df), artifact_path=path)
+    size = os.path.getsize(path)
+    params = _count_iforest_params(pipe.named_steps["iforest"])
+    return FitResult(
+        rows_fit=len(df),
+        artifact_path=path,
+        fit_duration_ms=fit_ms,
+        artifact_size_bytes=size,
+        param_count=params,
+    )
 
 
 def has_model(pond_id: str) -> bool:

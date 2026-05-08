@@ -1,0 +1,246 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+
+# Required for ghcr.io: read code, write packages.
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository }}
+
+# Avoid stacking up redundant builds when commits land back-to-back.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The server image needs Postgres + Redis at boot — Prisma's $connect()
+  # runs in onModuleInit, and ioredis subscribes immediately. Service
+  # containers run on the runner host network, so we point the container
+  # at 127.0.0.1 + the mapped service ports.
+  server:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: koi
+          POSTGRES_PASSWORD: koi_ci_password
+          POSTGRES_DB: koi
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U koi -d koi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/server
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      # Build to local docker daemon first so we can smoke-test it before
+      # pushing. We give it a fixed local tag for the run step below.
+      - name: Build (load locally)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: koi-server:ci
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+
+      - name: Smoke test (run + healthcheck)
+        run: |
+          set -euo pipefail
+          docker run -d --name koi-server-ci \
+            --network host \
+            -e NODE_ENV=production \
+            -e HTTP_PORT=3000 \
+            -e GIT_COMMIT=${{ github.sha }} \
+            -e JWT_ACCESS_SECRET=ci_access_secret_0123456789abcdef \
+            -e JWT_REFRESH_SECRET=ci_refresh_secret_0123456789abcdef \
+            -e DATABASE_URL=postgresql://koi:koi_ci_password@127.0.0.1:5432/koi \
+            -e REDIS_URL=redis://127.0.0.1:6379 \
+            -e MQTT_URL=mqtt://127.0.0.1:1883 \
+            koi-server:ci
+          # Poll /api/healthz on the runner. We don't rely on Docker's
+          # HEALTHCHECK status (slower to flip) — direct curl is the
+          # ground truth.
+          for i in $(seq 1 30); do
+            if out=$(curl -sf http://127.0.0.1:3000/api/healthz); then
+              echo "Healthy on attempt $i: $out"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Server did not become healthy within 60s"
+          docker logs koi-server-ci || true
+          exit 1
+
+      - name: Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=server
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+
+  admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/admin
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build (load locally)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin
+          file: ./admin/Dockerfile
+          load: true
+          tags: koi-admin:ci
+          cache-from: type=gha,scope=admin
+          cache-to: type=gha,mode=max,scope=admin
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+
+      - name: Smoke test (run + healthcheck)
+        run: |
+          set -euo pipefail
+          docker run -d --name koi-admin-ci -p 3001:3001 koi-admin:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3001/login > /dev/null; then
+              echo "Healthy on attempt $i"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Admin did not become healthy within 60s"
+          docker logs koi-admin-ci || true
+          exit 1
+
+      - name: Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin
+          file: ./admin/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=admin
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+
+  ml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/ml
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build (load locally)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ml
+          file: ./ml/Dockerfile
+          load: true
+          tags: koi-ml:ci
+          cache-from: type=gha,scope=ml
+          cache-to: type=gha,mode=max,scope=ml
+
+      - name: Smoke test (run + healthcheck)
+        run: |
+          set -euo pipefail
+          # The sidecar doesn't connect to Postgres at startup — only on
+          # demand — so the URL just needs to parse, not resolve.
+          docker run -d --name koi-ml-ci -p 8000:8000 \
+            -e DATABASE_URL=postgres://koi:koi@127.0.0.1:5432/koi \
+            koi-ml:ci
+          for i in $(seq 1 30); do
+            if out=$(curl -sf http://127.0.0.1:8000/healthz); then
+              echo "Healthy on attempt $i: $out"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::ML did not become healthy within 60s"
+          docker logs koi-ml-ci || true
+          exit 1
+
+      - name: Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ml
+          file: ./ml/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=ml

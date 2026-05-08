@@ -18,6 +18,7 @@ import { ForecastModule } from './forecast/forecast.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { PredictionsModule } from './predictions/predictions.module';
 import { AdminModule } from './admin/admin.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AdminModule } from './admin/admin.module';
     RecommendationsModule,
     PredictionsModule,
     AdminModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

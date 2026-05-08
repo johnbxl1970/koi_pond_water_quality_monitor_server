@@ -10,6 +10,7 @@ const NAV: { href: string; label: string }[] = [
   { href: '/devices', label: 'Devices' },
   { href: '/alerts', label: 'Alerts' },
   { href: '/predictions', label: 'AI / Predictions' },
+  { href: '/server', label: 'Server' },
 ];
 
 export function SidebarNav() {

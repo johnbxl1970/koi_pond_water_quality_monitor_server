@@ -79,4 +79,20 @@ export class AdminListsController {
   ) {
     return this.service.predictions(limit, offset, { kind, flagged, since });
   }
+
+  @Get('models')
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'offset', required: false })
+  @ApiQuery({ name: 'kind', required: false, enum: ['ANOMALY_SCORE', 'DO_FORECAST', 'NH3_FORECAST'] })
+  @ApiQuery({ name: 'active', required: false, enum: ['true', 'false'] })
+  @ApiQuery({ name: 'since', required: false, enum: ['24h', '7d', '30d'] })
+  models(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('kind') kind?: string,
+    @Query('active') active?: string,
+    @Query('since') since?: string,
+  ) {
+    return this.service.models(limit, offset, { kind, active, since });
+  }
 }

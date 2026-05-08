@@ -21,7 +21,7 @@ from typing import Literal
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from db import fetch_recent_telemetry, list_ponds_with_telemetry
+from db import FEATURE_COLUMNS, fetch_recent_telemetry, list_ponds_with_telemetry
 from db_writes import (
     get_active_model_version_id,
     record_model_version,
@@ -163,6 +163,10 @@ def retrain_anomaly():
                     "windowStart": window_start,
                     "windowEnd": window_end,
                     "hyperparams": {"n_estimators": 100, "contamination": "auto"},
+                    "fitDurationMs": fit_result.fit_duration_ms,
+                    "artifactSizeBytes": fit_result.artifact_size_bytes,
+                    "paramCount": fit_result.param_count,
+                    "featureColumns": list(FEATURE_COLUMNS),
                 },
             )
         except Exception as e:  # noqa: BLE001

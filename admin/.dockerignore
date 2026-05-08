@@ -1,0 +1,19 @@
+node_modules
+.next
+out
+
+# Local env, secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.git
+.github
+.vscode
+.idea
+.DS_Store
+
+# Misc
+*.md
+README.md
