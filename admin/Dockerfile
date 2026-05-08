@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ---- builder ----
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -21,7 +21,7 @@ RUN npm run build
 
 
 # ---- runtime ----
-FROM node:20-slim AS runtime
+FROM node:24-slim AS runtime
 WORKDIR /app
 
 # wget for the HEALTHCHECK; tini for signal handling.

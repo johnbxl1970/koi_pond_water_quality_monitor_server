@@ -5,7 +5,7 @@
 # musl binaries that depend on openssl 1.1 — alpine 3.19+ has only openssl 3,
 # and the upstream Prisma docs explicitly recommend the debian base for any
 # Node + Prisma image.
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 
 # argon2 is the only native dep that needs a compiler at install time.
@@ -38,7 +38,7 @@ RUN npm prune --omit=dev
 
 
 # ---- runtime ----
-FROM node:20-slim AS runtime
+FROM node:24-slim AS runtime
 WORKDIR /app
 
 # wget is used by the Docker HEALTHCHECK below. tini gives us proper PID-1
